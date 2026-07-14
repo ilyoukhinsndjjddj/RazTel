@@ -3,13 +3,12 @@ import sys
 from playwright.sync_api import sync_playwright
 
 TARGET_URL = "https://smm8.com/free-telegram-members"
-TELEGRAM_LINK = "https://t.me/razoravan"
+TELEGRAM_LINK = "https://t.me/razoravan" #
 
 def run():
     with sync_playwright() as p:
-        print("Starting Chromium Browser with anti-detect settings...")
+        print("Starting Chromium Browser...")
         
-        # استفاده از یک مرورگر با مشخصات واقعی تر برای جلوگیری از بلاک شدن تایمر
         browser = p.chromium.launch(
             headless=True,
             args=[
@@ -19,15 +18,12 @@ def run():
             ]
         )
         
-        # ساخت یک Context با مشخصات یک مرورگر واقعی (User-Agent عادی)
         context = browser.new_context(
             user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             viewport={"width": 1280, "height": 720}
         )
         
         page = context.new_page()
-        
-        # غیرفعال کردن کامل پرچم webdriver برای سایت
         page.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
 
         try:
@@ -42,63 +38,44 @@ def run():
             page.wait_for_selector(input_selector, timeout=15000)
             page.fill(input_selector, TELEGRAM_LINK)
 
-            # ۳. کلیک روی دکمه ثبت اولیه برای شروع تایمر
-            print("Clicking initial submit button...")
+            # ۳. کلیک روی دکمه اولیه برای شروع تایمر
+            print("Clicking initial submit button to start the timer...")
             submit_btn_selector = 'input#btnOptinLoggedIn, button[type="submit"], input[type="submit"]'
             page.click(submit_btn_selector)
 
-            # ۴. پایش فعال تایمر به جای انتظار کورکورانه
-            print("Waiting and monitoring the countdown...")
+            # ۴. انتظار کامل و زنده نگه داشتن صفحه تا پایان تایمر (۵ دقیقه و ۲۰ ثانیه)
+            print("Successfully clicked! Now holding the page active for 320 seconds...")
             
-            # ما حداکثر ۳۶۰ ثانیه (۶ دقیقه) منتظر می‌مانیم و هر ۵ ثانیه وضعیت را چک می‌کنیم
             start_time = time.time()
-            countdown_finished = False
+            total_wait = 320  # ۵ دقیقه و ۲۰ ثانیه (کمی بیشتر از ۵ دقیقه برای اطمینان)
             
-            while time.time() - start_time < 360:
-                # بررسی می‌کنیم که آیا دکمه نهایی قابل مشاهده یا فعال شده است؟
-                is_visible = page.is_visible(submit_btn_selector)
+            while time.time() - start_time < total_wait:
+                elapsed = int(time.time() - start_time)
+                remaining = total_wait - elapsed
                 
-                # همچنین چک می‌کنیم آیا دکمه کلاس disabled دارد یا خیر
-                is_disabled = page.eval_on_selector(
-                    submit_btn_selector, 
-                    "el => el.disabled || el.classList.contains('disabled')"
-                ) if page.locator(submit_btn_selector).count() > 0 else True
+                # اسکرول تفننی صفحه برای جلوگیری از فریز شدن مرورگر یا غیرفعال شدن سشن
+                if elapsed % 30 == 0:
+                    page.evaluate("window.scrollBy(0, 30)")
+                    time.sleep(1)
+                    page.evaluate("window.scrollBy(0, -30)")
                 
-                if is_visible and not is_disabled:
-                    print(f"Detected active button after {int(time.time() - start_time)} seconds!")
-                    countdown_finished = True
-                    break
-                
-                # برای اینکه مرورگر زنده بماند و تایمر جلو برود، صفحه را کمی اسکرول می‌کنیم
-                page.evaluate("window.scrollBy(0, 10)")
-                time.sleep(5)
-                page.evaluate("window.scrollBy(0, -10)")
-                time.sleep(5)
-                
-                print(f"Elapsed time: {int(time.time() - start_time)}s. Button visible: {is_visible}, disabled: {is_disabled}")
+                print(f"Elapsed: {elapsed}s | Remaining: {remaining}s. Keeping connection alive...")
+                time.sleep(10)
 
-            # ۵. کلیک نهایی (اگر تایمر تمام شده باشد یا حتی اگر دکمه هنوز مخفی باشد، با زور جاوااسکریپت کلیک می‌کنیم)
-            print("Attempting to click the final confirmation button...")
-            try:
-                # ابتدا تلاش برای کلیک عادی
-                page.click(submit_btn_selector, timeout=5000)
-                print("Clicked normally!")
-            except Exception:
-                # اگر کلیک عادی خطا داد، دکمه را با جاوااسکریپت مستقیم تحریک (Click) می‌کنیم
-                print("Normal click failed. Executing click via JavaScript...")
-                page.eval_on_selector(submit_btn_selector, "el => el.click()")
-                print("Clicked via JavaScript!")
-
-            # چند ثانیه صبر برای لود شدن موفقیت‌آمیز
-            print("Waiting 15 seconds for confirmation response...")
+            # ۵. ثبت وضعیت نهایی پس از پایان تایمر
+            print("Timer period finished! Waiting 15 more seconds for the auto-success message to render...")
             time.sleep(15)
-            print("Process completed successfully!")
+            
+            # ذخیره عکس نهایی از صفحه برای دیدن پیام موفقیت (Success)
+            page.screenshot(path="final_result.png")
+            print("Saved final result screenshot as 'final_result.png'")
+            print("Process fully completed!")
 
         except Exception as e:
-            print(f"An error occurred during execution: {e}")
+            print(f"An error occurred: {e}")
             try:
                 page.screenshot(path="error_screenshot.png")
-                print("Screenshot of error saved as 'error_screenshot.png'")
+                print("Saved error screenshot.")
             except:
                 pass
             browser.close()
