@@ -3,7 +3,7 @@ import sys
 from playwright.sync_api import sync_playwright
 
 TARGET_URL = "https://smm8.com/free-telegram-members"
-TELEGRAM_LINK = "https://t.me/razoravan" #
+TELEGRAM_LINK = "https://t.me/razoravan" 
 
 def run():
     with sync_playwright() as p:
@@ -38,22 +38,21 @@ def run():
             page.wait_for_selector(input_selector, timeout=15000)
             page.fill(input_selector, TELEGRAM_LINK)
 
-            # ۳. کلیک روی دکمه اولیه برای شروع تایمر
-            print("Clicking initial submit button to start the timer...")
+            # ۳. کلیک اولیه
+            print("Clicking initial submit button...")
             submit_btn_selector = 'input#btnOptinLoggedIn, button[type="submit"], input[type="submit"]'
             page.click(submit_btn_selector)
 
-            # ۴. انتظار کامل و زنده نگه داشتن صفحه تا پایان تایمر (۵ دقیقه و ۲۰ ثانیه)
+            # ۴. انتظار برای پایان تایمر و پیام موفقیت
             print("Successfully clicked! Now holding the page active for 320 seconds...")
             
             start_time = time.time()
-            total_wait = 320  # ۵ دقیقه و ۲۰ ثانیه (کمی بیشتر از ۵ دقیقه برای اطمینان)
+            total_wait = 320 
             
             while time.time() - start_time < total_wait:
                 elapsed = int(time.time() - start_time)
                 remaining = total_wait - elapsed
                 
-                # اسکرول تفننی صفحه برای جلوگیری از فریز شدن مرورگر یا غیرفعال شدن سشن
                 if elapsed % 30 == 0:
                     page.evaluate("window.scrollBy(0, 30)")
                     time.sleep(1)
@@ -62,23 +61,10 @@ def run():
                 print(f"Elapsed: {elapsed}s | Remaining: {remaining}s. Keeping connection alive...")
                 time.sleep(10)
 
-            # ۵. ثبت وضعیت نهایی پس از پایان تایمر
-            print("Timer period finished! Waiting 15 more seconds for the auto-success message to render...")
-            time.sleep(15)
-            
-            # ذخیره عکس نهایی از صفحه برای دیدن پیام موفقیت (Success)
-            page.screenshot(path="final_result.png")
-            print("Saved final result screenshot as 'final_result.png'")
             print("Process fully completed!")
 
         except Exception as e:
             print(f"An error occurred: {e}")
-            try:
-                page.screenshot(path="error_screenshot.png")
-                print("Saved error screenshot.")
-            except:
-                pass
-            browser.close()
             sys.exit(1)
 
         finally:
