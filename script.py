@@ -47,7 +47,7 @@ def run():
             print("Successfully clicked! Now holding the page active for 320 seconds...")
             
             start_time = time.time()
-            total_wait = 320 
+            total_wait = 620 
             
             while time.time() - start_time < total_wait:
                 elapsed = int(time.time() - start_time)
