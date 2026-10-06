@@ -1,31 +1,39 @@
-name: Auto Telegram Members Submitter
+name: run-timer-bot
 
 on:
-  # قابلیت اجرا توسط وب‌هوک سایت کرون‌جاب
-  repository_dispatch:
-    types: [trigger-smm8]
-  # قابلیت اجرای دستی مستقیم از پنل گیت‌هاب جهت تست
+  schedule:
+    # هر ۲ ساعت یکبار (به وقت UTC)
+    - cron: '5 */2 * * *'
   workflow_dispatch:
 
 jobs:
-  submit_job:
+  run:
     runs-on: ubuntu-latest
+    # تایمر سایت تا ۲۰ دقیقه میره + چند تلاش برای چک امنیتی
+    timeout-minutes: 50
 
     steps:
-    - name: Checkout Code
-      uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.10'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
 
-    - name: Install System Dependencies for Playwright
-      run: |
-        python -m pip install --upgrade pip
-        pip install playwright
-        playwright install chromium
-        playwright install-deps chromium
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          patchright install --with-deps chromium
 
-    - name: Run SMM8 Automation Script
-      run: python script.py
+      - name: Run bot
+        env:
+          TARGET_LINK: ${{ secrets.TARGET_LINK }}
+        run: xvfb-run -a python main.py
+
+      - name: Upload debug screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-screenshots
+          path: debug/
+          if-no-files-found: ignore
+          retention-days: 7
